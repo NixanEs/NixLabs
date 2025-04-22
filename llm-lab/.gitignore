@@ -1,0 +1,12 @@
+whisper
+.idea/
+ollama
+flowise
+openwebui
+n8n
+chroma
+postgres
+redis
+qdrant
+broker
+openhands-state

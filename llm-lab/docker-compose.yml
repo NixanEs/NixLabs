@@ -1,0 +1,540 @@
+# Made by: 0x4171341 <alfierimorillo@gmail.com>  2023
+x-ollama-base: &ollama-base
+    image: ollama/ollama:latest
+    hostname: ${ohostname}
+    container_name: ${ohostname}
+    privileged: true
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    tty: true
+    ports:
+      - ${OPORT}:11434
+    ulimits:
+      memlock: -1
+    volumes:
+      - ./ollama:/root/.ollama
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'ollama --version && ollama ps || exit 1']
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+x-flowise-base: &flowise-base
+    image: flowiseai/flowise:latest
+    hostname: ${fhostname}
+    container_name: ${fhostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    environment:
+      - DATABASE_PATH=/root/.flowise
+      - DATABASE_SSL=false
+      - APIKEY_PATH=/root/.flowise
+      - SECRETKEY_PATH=/root/.flowise
+      - LOG_PATH=/root/.flowise/logs
+      - REDIS_URL=${REDIS_URL}
+      - FLOWISE_USERNAME=${FLOWISE_USERNAME}
+      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD}
+      - DATABASE_TYPE=${DATABASE_TYPE}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=${POSTGRESDB_PORT}
+      - DATABASE_USER=${POSTGRES_USER}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_NAME=${POSTGRES_DB}
+      - FLOWISE_FILE_SIZE_LIMIT=${FLOWISE_FILE_SIZE_LIMIT}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - IFRAME_ORIGINS=${IFRAME_ORIGINS}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - ENABLE_METRICS=${ENABLE_METRICS}
+      - METRICS_OPEN_TELEMETRY_DEBUG=${METRICS_OPEN_TELEMETRY_DEBUG}
+      - DISABLE_FLOWISE_TELEMETRY=${DISABLE_FLOWISE_TELEMETRY}
+    ports:
+      - ${FPORT}:3000
+    volumes:
+      - ./flowise:/root/.flowise
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+x-openwebui-base: &openwebui-base
+    image: ghcr.io/open-webui/open-webui:main
+    hostname: ${openhostname}
+    container_name: ${openhostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    environment:
+      - ENV=prod
+      - CUSTOM_NAME=${CUSTOM_NAME}
+      - WEBUI_NAME=${CUSTOM_NAME}
+      - ENABLE_SIGNUP=true
+      - ENABLE_LOGIN_FORM=true
+      - ENABLE_REALTIME_CHAT_SAVE=false
+      - ENABLE_ADMIN_EXPORT=true
+      - ENABLE_ADMIN_CHAT_ACCESS=true
+      - ENABLE_CHANNELS=true
+      - SHOW_ADMIN_DETAILS=true
+      - DEFAULT_USER_ROLE=pending
+      - DEFAULT_LOCALE=es
+      - AIOHTTP_CLIENT_TIMEOUT=100
+      - ENABLE_OLLAMA_API=true
+      - OLLAMA_BASE_URL=${UOLLAMA}
+      - ENABLE_OPENAI_API=${ENABLE_OPENAI_API}
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ENABLE_AUTOCOMPLETE_GENERATION=true
+      - AUTOCOMPLETE_GENERATION_INPUT_MAX_LENGTH=-1
+      - ENABLE_EVALUATION_ARENA_MODELS=false
+      - ENABLE_MESSAGE_RATING=true
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_TAGS_GENERATION=true
+      - ENABLE_FORWARD_USER_INFO_HEADERS=false
+      - WEBUI_SESSION_COOKIE_SAME_SITE=strict
+      - WEBUI_SESSION_COOKIE_SECURE=true
+      - WEBUI_AUTH_COOKIE_SAME_SITE=strict
+      - WEBUI_AUTH_COOKIE_SECURE=true
+      - WEBUI_AUTH=true
+      - OFFLINE_MODE=false
+      - RESET_CONFIG_ON_START=false
+      - SAFE_MODE=false
+      - CORS_ALLOW_ORIGIN=*
+      - WHISPER_MODEL_AUTO_UPDATE=true
+      - ENABLE_GOOGLE_DRIVE_INTEGRATION=false
+      - GOOGLE_DRIVE_CLIENT_ID=
+      - GOOGLE_DRIVE_API_KEY=
+      - ENABLE_IMAGE_GENERATION=false
+      - IMAGE_GENERATION_ENGINE=comfyui
+      - IMAGE_GENERATION_MODEL=
+      - IMAGE_SIZE=512x512
+      - IMAGE_STEPS=50
+      - COMFYUI_BASE_URL=${COMFYUI_BASE_URL}
+      - COMFYUI_API_KEY=${COMFYUI_API_KEY}
+      - ENABLE_WEBSOCKET_SUPPORT=true
+      - WEBSOCKET_MANAGER=redis
+      - WEBSOCKET_REDIS_URL=${UREDIS}
+      - REDIS_URL=${UREDIS}
+      - ENABLE_SEARCH_QUERY_GENERATION=true
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY}
+      #- http_proxy=${http_proxy}
+      #- https_proxy=${https_proxy}
+    ports:
+      - ${PORT}:8080
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./openwebui:/app/backend/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+x-n8n-base: &n8n-base
+    image: n8nio/n8n:latest
+    hostname: ${nhostname}
+    container_name: ${nhostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    environment:
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=true
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=10000
+      - N8N_SECURE_COOKIE=false
+      - DB_TYPE=${DB_TYPE}
+      - DB_POSTGRESDB_HOST=${DATABASE_HOST}
+      - DB_POSTGRESDB_PORT=${POSTGRESDB_PORT}
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_POSTGRESDB_POOL_SIZE=2
+      - DB_POSTGRESDB_SSL_ENABLED=false
+      - N8N_TEMPLATES_ENABLED=true
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+      - N8N_HIRING_BANNER_ENABLED=false
+      - N8N_GRACEFUL_SHUTDOWN_TIMEOUT=30
+      - N8N_REINSTALL_MISSING_PACKAGES=true
+      - N8N_METRICS=false
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_ON_PROGRESS=false
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      - N8N_COMMUNITY_PACKAGES_ENABLED=true
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - N8N_PAYLOAD_SIZE_MAX=${N8N_PAYLOAD_SIZE_MAX}
+      - N8N_FORMDATA_FILE_SIZE_MAX=${N8N_FORMDATA_FILE_SIZE_MAX}
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      - N8N_PUBLIC_API_SWAGGERUI_DISABLED=true
+      - N8N_RUNNERS_ENABLED=true
+    ports:
+      - ${N8N_PORT}:5678
+    volumes:
+      - ./n8n/storage:/home/node/.n8n
+      - ./n8n/backup:/backup
+      - ./n8n/shared:/data/shared
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD", "sh", "-c", "(wget -q -T 5 -O - http://127.0.0.1:5678/healthz 2>/dev/null | grep -qF '{\"status\":\"ok\"}') || exit 1"]
+      start_period: 1m00s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+x-postgres-base: &postgres-base
+    image: postgres:latest
+    hostname: ${phostname}
+    container_name: ${phostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U user -d ${POSTGRES_DB}']
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+x-redis-base: &redis-base
+    #image: redislabs/redismod:latest
+    image: redis:latest
+    hostname: ${rhostname}
+    container_name: ${rhostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    environment:
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_DATABASES=16
+      #- REDIS_ARGS=--save 20 1
+    volumes:
+      - ./redis:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD", "redis-cli","ping"]
+      start_period: 5s
+      interval: 1s
+      timeout: 3s
+      retries: 5
+
+x-qdrant-base: &qdrant-base
+    image: qdrant/qdrant
+    hostname: ${qhostname}
+    container_name: ${qhostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__LOG_LEVEL=INFO
+    ports:
+      - ${qdrant}:6333
+      #- ${qdrant2}:6334
+    volumes:
+      - ./qdrant:/qdrant/storage
+
+x-chroma-base: &chroma-base
+    image: chromadb/chroma:latest
+    hostname: ${chostname}
+    container_name: ${chostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    environment:
+      - ANONYMIZED_TELEMETRY=FALSE
+      - IS_PERSISTENT=TRUE
+      - ALLOW_RESET=TRUE
+    ports:
+      - ${CPORT}:8000
+    volumes:
+      - ./chroma:/chroma/chroma
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:8000/api/v2/heartbeat" ]
+      start_period: 5s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+x-kafka-base: &kafka-base
+    image: apache/kafka:latest
+    hostname: ${khostname}
+    container_name: ${khostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    ports:
+      - ${kafka1}:${kafka1}
+      - ${kafka2}:${kafka2}
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://localhost:${kafka1},CONTROLLER://localhost:${kafka2}
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:${kafka1}
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:${kafka2}
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_NUM_PARTITIONS=3
+    volumes:
+      - ./broker/data:/var/lib/kafka/data
+
+x-whisper-base: &whisper-base
+    hostname: ${whostname}
+    container_name: ${whostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    ports:
+      - ${wport}:${wport}
+    volumes:
+      - ./whisper:/app/app
+      - ./cache-whisper:/root/.cache
+
+x-crawl4ai-base: &crawl4ai-base
+    hostname: ${crawhostname}
+    container_name: ${crawhostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    ports:
+      - ${CRAW1}:11235
+      - ${CRAW2}:8000
+      - ${CRAW3}:9222
+      - ${CRAW4}:8080
+    volumes:
+      - /dev/shm:/dev/shm
+    environment:
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN}
+      #- OPENAI_API_KEY=${OPENAI_API_KEY}
+      #- CLAUDE_API_KEY=${CLAUDE_API_KEY}
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11235/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+x-nvidia-base: &nvidia-base
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+x-openhands-base: &openhands-base
+    image: docker.all-hands.dev/all-hands-ai/openhands:0.28
+    hostname: ${handhostname}
+    container_name: ${handhostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    stdin_open: true
+    tty: true
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./openhands-state:/.openhands-state
+    environment:
+      - SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.28-nikolaik
+      - LOG_ALL_EVENTS=true
+      #- WORKSPACE_BASE=${WORKSPACE_BASE}
+      #- LLM_PROVIDER=${LLM_PROVIDER}
+      #- LLM_MODEL=${LLM_MODEL}
+      #- LLM_API_KEY=${LLM_API_KEY}
+      - TARGET_BRANCH=main
+
+x-proxy-base: &proxy-base
+    image: 'jc21/nginx-proxy-manager:latest'
+    hostname: ${proxyhostname}
+    container_name: ${proxyhostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    environment:
+      - DISABLE_IPV6=${DISABLE_IPV6}
+      - INITIAL_ADMIN_EMAIL=${INITIAL_ADMIN_EMAIL}
+      - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD}
+    ports:
+      - 80:80
+      - 443:443
+      - ${pproxy}:81
+    volumes:
+      - ./proxy/data:/data
+      - ./proxy/letsencrypt:/etc/letsencrypt
+    healthcheck:
+      test: ["CMD", "/usr/bin/check-health"]
+      interval: 10s
+      timeout: 3s
+
+x-searxng-base: &searxng-base
+    image: docker.io/searxng/searxng:latest
+    hostname: ${searxnghostname}
+    container_name: ${searxnghostname}
+    pull_policy: ${pull_policy}
+    restart: ${restart}
+    ports:
+      - ${psearch}:8080
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME:-localhost}/
+      - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-4}
+      - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-4}
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "1"
+
+################################################
+
+services:
+    flowise-all:
+        <<: *flowise-base
+        profiles: ["flowise"]
+        links:
+          - redis-all
+        depends_on:
+          postgres-all:
+            condition: service_healthy
+            restart: true
+          redis-all:
+            condition: service_healthy
+            restart: true
+
+    n8n-all:
+        <<: *n8n-base
+        profiles: ["n8n"]
+        links:
+          - redis-all
+        depends_on:
+          postgres-all:
+            condition: service_healthy
+            restart: true
+          redis-all:
+            condition: service_healthy
+            restart: true
+
+    postgres-all:
+        <<: *postgres-base
+        profiles: ["n8n", "flowise"]
+
+    redis-all:
+        <<: *redis-base
+        profiles: ["n8n", "flowise", "openwebui"]
+
+    qdrant-all:
+        <<: *qdrant-base
+        profiles: ["qdrant"]
+
+    chroma-all:
+        <<: *chroma-base
+        profiles: ["chroma"]
+
+    openwebui-all:
+        <<: *openwebui-base
+        profiles: ["openwebui"]
+        links:
+          - redis-all
+        depends_on:
+          redis-all:
+            condition: service_healthy
+            restart: true
+
+    kafka-all:
+        <<: *kafka-base
+        profiles: ["kafka"]
+
+    ollama-others:
+        <<: *ollama-base
+        profiles: ["ollama-cpu"]
+        environment:
+          - OLLAMA_DEBUG=${OLLAMA_DEBUG}
+          - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE}
+          - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS}
+          - OLLAMA_MAX_QUEUE=${OLLAMA_MAX_QUEUE}
+          - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL}
+          - OLLAMA_NOPRUNE=${OLLAMA_NOPRUNE}
+          - OLLAMA_SCHED_SPREAD=${OLLAMA_SCHED_SPREAD}
+          - OLLAMA_FLASH_ATTENTION=${OLLAMA_FLASH_ATTENTION}
+          - OLLAMA_KV_CACHE_TYPE=${OLLAMA_KV_CACHE_TYPE}
+          - OLLAMA_LOAD_TIMEOUT=${OLLAMA_LOAD_TIMEOUT}
+
+    ollama-nvidia:
+        <<: [*ollama-base, *nvidia-base]
+        profiles: ["ollama-gpu"]
+        environment:
+          - NVIDIA_VISIBLE_DEVICES=all
+          - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+          - OLLAMA_DEBUG=${OLLAMA_DEBUG}
+          - OLLAMA_KEEP_ALIVE=${OLLAMA_KEEP_ALIVE}
+          - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS}
+          - OLLAMA_MAX_QUEUE=${OLLAMA_MAX_QUEUE}
+          - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL}
+          - OLLAMA_NOPRUNE=${OLLAMA_NOPRUNE}
+          - OLLAMA_SCHED_SPREAD=${OLLAMA_SCHED_SPREAD}
+          - OLLAMA_FLASH_ATTENTION=${OLLAMA_FLASH_ATTENTION}
+          - OLLAMA_KV_CACHE_TYPE=${OLLAMA_KV_CACHE_TYPE}
+          - OLLAMA_LOAD_TIMEOUT=${OLLAMA_LOAD_TIMEOUT}
+
+    whisper-nvidia:
+        <<: [*whisper-base, *nvidia-base]
+        image: onerahmet/openai-whisper-asr-webservice:latest-gpu
+        profiles: ["whisper-gpu"]
+        environment:
+          - ASR_DEVICE=cuda
+          - ASR_MODEL=${ASR_MODEL}
+          - ASR_ENGINE=${ASR_ENGINE}
+          - MODEL_IDLE_TIMEOUT=300
+
+    whisper-cpu:
+        <<: *whisper-base
+        image: onerahmet/openai-whisper-asr-webservice:latest
+        profiles: ["whisper"]
+        environment:
+          - ASR_DEVICE=cpu
+          - ASR_MODEL=${ASR_MODEL}
+          - ASR_ENGINE=${ASR_ENGINE}
+          - MODEL_IDLE_TIMEOUT=300
+
+    crawl4ai-amd64:
+        <<: *crawl4ai-base
+        image: unclecode/crawl4ai:all-amd64
+        profiles: ["crawl4ai-amd64"]
+
+    crawl4ai-arm:
+        <<: *crawl4ai-base
+        image: unclecode/crawl4ai:all-arm64
+        profiles: ["crawl4ai-arm64"]
+
+    openhands:
+        <<: *openhands-base
+        profiles: ["openhands"]
+
+    proxy:
+        <<: *proxy-base
+        profiles: ["proxy"]
+
+    searxng:
+        <<: *searxng-base
+        profiles: ["searxng"]
